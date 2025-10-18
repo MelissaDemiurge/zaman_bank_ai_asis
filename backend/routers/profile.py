@@ -14,8 +14,19 @@ from backend.models.conversation import Conversation
 from backend.models.goal import Goal
 from backend.models.challenge import Challenge
 from backend.services.proactive_agent import proactive_agent
+import uuid
 
 router = APIRouter()
+
+class CreateUserRequest(BaseModel):
+    name: str
+    phone: Optional[str] = None
+
+class UserResponse(BaseModel):
+    id: str
+    name: str
+    phone: Optional[str]
+    created_at: str
 
 class EmotionalProfileResponse(BaseModel):
     user_id: str
@@ -23,6 +34,46 @@ class EmotionalProfileResponse(BaseModel):
     dominant_emotion: str
     financial_vulnerability_trend: str
     recent_emotions: List[dict]
+
+@router.post("/profile/create")
+async def create_user(request: CreateUserRequest, db: Session = Depends(get_db)):
+    """
+    Создание нового пользователя
+    """
+    # Проверка существующего пользователя по телефону
+    if request.phone:
+        existing_user = db.query(User).filter(User.phone == request.phone).first()
+        if existing_user:
+            return {
+                "message": "Пользователь уже существует",
+                "user": {
+                    "id": str(existing_user.id),
+                    "name": existing_user.name,
+                    "phone": existing_user.phone,
+                    "created_at": existing_user.created_at.isoformat()
+                }
+            }
+    
+    # Создание нового пользователя
+    new_user = User(
+        id=uuid.uuid4(),
+        name=request.name,
+        phone=request.phone
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return {
+        "message": "Пользователь успешно создан",
+        "user": {
+            "id": str(new_user.id),
+            "name": new_user.name,
+            "phone": new_user.phone,
+            "created_at": new_user.created_at.isoformat()
+        }
+    }
 
 @router.get("/profile/{user_id}", response_model=EmotionalProfileResponse)
 async def get_emotional_profile(user_id: str, db: Session = Depends(get_db)):

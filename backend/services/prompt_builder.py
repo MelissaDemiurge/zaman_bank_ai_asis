@@ -19,7 +19,8 @@ class PromptBuilder:
         emotion_data: Optional[Dict] = None,
         user_goals: Optional[List[Dict]] = None,
         active_challenges: Optional[List[Dict]] = None,
-        conversation_history: Optional[List[Dict]] = None
+        conversation_history: Optional[List[Dict]] = None,
+        financial_context: Optional[str] = None
     ) -> List[Dict[str, str]]:
         """
         Построение полного промпта для чата
@@ -101,6 +102,10 @@ class PromptBuilder:
         if active_challenges:
             challenges_context = self._build_challenges_context(active_challenges)
             full_system_prompt += f"\n\n{challenges_context}"
+        
+        # Добавление финансового контекста из транзакций
+        if financial_context:
+            full_system_prompt += f"\n\n{financial_context}"
         
         # Формирование списка сообщений
         messages = [{"role": "system", "content": full_system_prompt}]

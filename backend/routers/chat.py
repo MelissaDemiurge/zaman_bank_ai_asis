@@ -19,7 +19,15 @@ from backend.services.rag_engine import rag_engine
 from backend.services.emotion_analyzer import emotion_analyzer
 from backend.services.prompt_builder import prompt_builder
 from backend.services.voice_service import voice_service
+from backend.services.ai_analytics import ai_analytics
 from backend.utils.validators import sanitize_input
+from backend.prompts import (
+    get_no_goals_deletion_prompt,
+    get_goal_not_found_prompt,
+    get_past_deadline_goal_prompt,
+    get_create_goal_suggestion_prompt,
+    get_delete_goal_confirmation_prompt
+)
 
 router = APIRouter()
 
@@ -118,18 +126,27 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
             for c in reversed(recent_conversations)
         ]
         
-        # 5. Построение промпта
+        # 5. Получение финансового контекста из транзакций
+        financial_context = None
+        try:
+            financial_context = ai_analytics.get_financial_context_for_chat(user.id, db)
+        except Exception as e:
+            print(f"Could not load financial context: {e}")
+        
+        # 6. Построение промпта
         messages = prompt_builder.build_chat_prompt(
             user_message=user_message,
             emotion_data=emotion_data,
             user_goals=goals_data if goals_data else None,
             active_challenges=challenges_data if challenges_data else None,
-            conversation_history=conversation_history
+            conversation_history=conversation_history,
+            financial_context=financial_context
         )
         
-        # 6. Определение намерений пользователя через LLM (умный анализ вместо ключевых слов)
+        # 7. Определение намерений пользователя через LLM (умный анализ вместо ключевых слов)
         suggested_goal_data = None
         goal_action = None
+        intent_data = {}  # Инициализация для доступности вне try блока
         
         try:
             # LLM анализирует намерение пользователя
@@ -143,24 +160,55 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
                 # Намерение: создать финансовую цель
                 if intent_data['intent'] == 'create_goal':
                     goal_data = intent_data.get('goal_data')
+                    reasoning = intent_data.get('reasoning', '')
+                    
                     if goal_data and goal_data.get('title'):
-                        suggested_goal_data = {
-                            "title": goal_data['title'],
-                            "target_amount": goal_data.get('target_amount'),
-                            "deadline_months": goal_data.get('deadline_months'),
-                            "action": "create",
-                            "reasoning": intent_data.get('reasoning', '')
-                        }
-                        goal_action = "create"
-                        print(f"[Goal Detection] CREATE: {goal_data['title']} "
-                              f"(amount: {goal_data.get('target_amount')}, "
-                              f"months: {goal_data.get('deadline_months')})")
+                        # Проверка: если дедлайн в прошлом (deadline_months = null + reasoning содержит "прошел"/"невозможно")
+                        # то НЕ предлагаем создать цель, а только предупреждаем
+                        deadline_months = goal_data.get('deadline_months')
+                        is_past_deadline = (
+                            deadline_months is None and 
+                            ('прошел' in reasoning.lower() or 'невозможно' in reasoning.lower())
+                        )
+                        
+                        if not is_past_deadline:
+                            # Нормальная цель - предлагаем создать
+                            suggested_goal_data = {
+                                "title": goal_data['title'],
+                                "target_amount": goal_data.get('target_amount'),
+                                "deadline_months": goal_data.get('deadline_months'),
+                                "action": "create",
+                                "reasoning": reasoning
+                            }
+                            goal_action = "create"
+                            print(f"[Goal Detection] CREATE: {goal_data['title']} "
+                                  f"(amount: {goal_data.get('target_amount')}, "
+                                  f"months: {goal_data.get('deadline_months')})")
+                        else:
+                            # Дедлайн в прошлом - только предупреждаем, но НЕ создаем suggested_goal_data
+                            suggested_goal_data = {
+                                "title": goal_data['title'],
+                                "target_amount": goal_data.get('target_amount'),
+                                "deadline_months": None,
+                                "action": "create",
+                                "reasoning": reasoning
+                            }
+                            goal_action = "create"
+                            print(f"[Goal Detection] INVALID DEADLINE: {goal_data['title']} - {reasoning}")
                 
                 # Намерение: удалить финансовую цель
                 elif intent_data['intent'] == 'delete_goal':
                     goal_to_delete = intent_data.get('goal_to_delete')
-                    if goal_to_delete:
-                        # Найти цель по названию (нечёткое совпадение для гибкости)
+                    
+                    # КРИТИЧЕСКИ ВАЖНО: проверяем что у пользователя ЕСТЬ цели
+                    if not user_goals:
+                        # НЕТ целей вообще - добавим специальную инструкцию
+                        messages.append({"role": "system", "content": get_no_goals_deletion_prompt()})
+                        print(f"[Goal Detection] DELETE intent but user has NO goals at all")
+                    
+                    elif goal_to_delete:
+                        # Есть цели - ищем нужную
+                        goal_found = False
                         for goal_obj in user_goals:
                             # Проверяем совпадение в обе стороны
                             if (goal_to_delete.lower() in goal_obj.title.lower() or 
@@ -172,12 +220,18 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
                                     "reasoning": intent_data.get('reasoning', '')
                                 }
                                 goal_action = "delete"
+                                goal_found = True
                                 print(f"[Goal Detection] DELETE: {goal_obj.title}")
                                 break
                         
-                        # Если цель не найдена, но LLM уверен в намерении удаления
-                        if not suggested_goal_data and intent_data.get('confidence', 0) >= 0.85:
-                            print(f"[Goal Detection] DELETE intent detected but goal '{goal_to_delete}' not found in user's goals")
+                        # Если цель не найдена среди существующих
+                        if not goal_found and intent_data.get('confidence', 0) >= 0.85:
+                            print(f"[Goal Detection] DELETE intent for '{goal_to_delete}' but NOT found in goals")
+                            # Добавляем инструкцию что такой цели нет
+                            messages.append({
+                                "role": "system", 
+                                "content": get_goal_not_found_prompt(goal_to_delete, goals_data)
+                            })
             
             else:
                 # Низкая уверенность - логируем для анализа
@@ -188,16 +242,29 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
             print(f"Error in intent detection: {e}")
             # При ошибке система продолжит работу без определения намерения
         
-        # 7. Получение ответа от LLM
-        assistant_response = llm_service.chat_completion(messages)
-        
-        # 8. Добавление предложения о создании цели в конце ответа (если найдена)
+        # 7. Добавляем инструкцию для LLM о предложении цели (если обнаружена)
         if suggested_goal_data and goal_action == "create":
-            assistant_response += f"\n\n💡 Я заметил, что вы хотите '{suggested_goal_data['title']}'. Хотите записать это в свои цели?"
+            # Проверка на невозможный дедлайн (если deadline_months = null и reasoning содержит информацию о прошлой дате)
+            reasoning = intent_data.get('reasoning', '')
+            deadline_months = suggested_goal_data.get('deadline_months')
+            
+            if deadline_months is None and ('прошел' in reasoning.lower() or 'невозможно' in reasoning.lower()):
+                # Дедлайн в прошлом - AI должен предупредить
+                goal_instruction = get_past_deadline_goal_prompt(suggested_goal_data['title'], reasoning)
+            else:
+                # Нормальная цель - предлагаем добавить
+                goal_instruction = get_create_goal_suggestion_prompt(suggested_goal_data['title'])
+            messages.append({"role": "system", "content": goal_instruction})
         
-        # Обработка подтверждения удаления цели
         if suggested_goal_data and goal_action == "delete":
-            assistant_response = f"Хорошо, удалю цель '{suggested_goal_data['title']}' из списка. Подтвердите действие."
+            # Для удаления - ВАЖНО: НЕ говорим что удалили, а только ПРЕДЛАГАЕМ
+            messages.append({
+                "role": "system", 
+                "content": get_delete_goal_confirmation_prompt(suggested_goal_data['title'])
+            })
+        
+        # 8. Получение ответа от LLM
+        assistant_response = llm_service.chat_completion(messages)
         
         # 9. Извлечение рекомендованных продуктов (простой поиск по ключевым словам)
         suggested_products = []

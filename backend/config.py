@@ -33,6 +33,11 @@ CHROMA_COLLECTION_NAME = "zaman_knowledge"
 TOP_K_RESULTS = 3  # Количество релевантных чанков для контекста
 CHUNK_SIZE = 500  # Размер чанков при векторизации
 
+# LLM Token limits (увеличены для более развернутых ответов)
+MAX_TOKENS_CHAT = 4000  # Для обычного чата - увеличен для развернутых ответов
+MAX_TOKENS_ANALYTICS = 4500  # Для аналитики и детальных отчетов
+MAX_TOKENS_SHORT = 500  # Для коротких ответов (эмоции, интенты)
+
 # Emotion analysis
 EMOTION_STRESS_THRESHOLD = 7  # Порог стресса для триггера проактивных советов
 

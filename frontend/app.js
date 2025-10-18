@@ -189,6 +189,24 @@ function playAudioResponse(base64Audio) {
     audio.play().catch(err => console.error('Audio playback error:', err));
 }
 
+// Форматирование markdown в HTML
+function formatMarkdown(text) {
+    if (!text) return '';
+    
+    // Преобразуем markdown в HTML
+    let formatted = text
+        // Жирный шрифт: **text** или __text__ -> <strong>text</strong>
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.+?)__/g, '<strong>$1</strong>')
+        // Курсив: *text* или _text_ -> <em>text</em>
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/_(.+?)_/g, '<em>$1</em>')
+        // Переносы строк: \n -> <br>
+        .replace(/\n/g, '<br>');
+    
+    return formatted;
+}
+
 // Добавление сообщения в чат
 function addMessageToChat(role, message, products = [], emotion = null, suggestedGoal = null, goalAction = null) {
     const chatContainer = document.getElementById('chat-container');
@@ -202,6 +220,9 @@ function addMessageToChat(role, message, products = [], emotion = null, suggeste
     
     const now = new Date();
     const time = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    
+    // Форматируем сообщение (преобразуем markdown в HTML)
+    const formattedMessage = formatMarkdown(message);
     
     let productsHtml = '';
     if (products && products.length > 0) {
@@ -241,7 +262,7 @@ function addMessageToChat(role, message, products = [], emotion = null, suggeste
     
     messageDiv.innerHTML = `
         <div class="message-content">
-            ${message}
+            ${formattedMessage}
             ${productsHtml}
             ${goalActionHtml}
             <div class="message-time">${time}</div>

@@ -6,7 +6,10 @@ from backend.config import (
     OPENAI_API_KEY, 
     OPENAI_BASE_URL, 
     GPT_MODEL,
-    EMBEDDING_MODEL
+    EMBEDDING_MODEL,
+    MAX_TOKENS_CHAT,
+    MAX_TOKENS_ANALYTICS,
+    MAX_TOKENS_SHORT
 )
 from typing import List, Dict, Any, Optional
 import json
@@ -26,7 +29,7 @@ class LLMService:
         self, 
         messages: List[Dict[str, str]], 
         temperature: float = 0.7,
-        max_tokens: int = 1000
+        max_tokens: int = None
     ) -> str:
         """
         Отправка запроса к gpt-4o-mini
@@ -34,11 +37,15 @@ class LLMService:
         Args:
             messages: Список сообщений в формате [{"role": "user", "content": "..."}]
             temperature: Температура генерации
-            max_tokens: Максимальное количество токенов
+            max_tokens: Максимальное количество токенов (по умолчанию MAX_TOKENS_CHAT)
             
         Returns:
             Ответ от модели
         """
+        # Используем дефолтное значение из конфига если не указано
+        if max_tokens is None:
+            max_tokens = MAX_TOKENS_CHAT
+            
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -96,13 +103,19 @@ class LLMService:
                     pass
         return {}
     
-    def simple_query(self, prompt: str, system_prompt: str = None) -> str:
+    def simple_query(
+        self, 
+        prompt: str, 
+        system_prompt: str = None,
+        max_tokens: int = None
+    ) -> str:
         """
         Простой запрос к модели
         
         Args:
             prompt: Пользовательский промпт
             system_prompt: Системный промпт (опционально)
+            max_tokens: Максимальное количество токенов (опционально)
             
         Returns:
             Ответ модели
@@ -112,7 +125,7 @@ class LLMService:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
         
-        return self.chat_completion(messages)
+        return self.chat_completion(messages, max_tokens=max_tokens)
     
     def detect_intent(self, user_message: str, user_goals: Optional[List[Dict]] = None) -> Dict[str, Any]:
         """

@@ -3,7 +3,7 @@
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import chat, goals, challenges, profile
+from backend.routers import chat, goals, challenges, profile, analytics
 from backend.utils.db import init_db
 
 app = FastAPI(
@@ -26,6 +26,7 @@ app.include_router(chat.router, prefix="/api", tags=["Chat"])
 app.include_router(goals.router, prefix="/api", tags=["Goals"])
 app.include_router(challenges.router, prefix="/api", tags=["Challenges"])
 app.include_router(profile.router, prefix="/api", tags=["Profile"])
+app.include_router(analytics.router, prefix="/api", tags=["Analytics"])
 
 @app.on_event("startup")
 async def startup_event():
