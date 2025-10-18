@@ -9,7 +9,6 @@ from backend.config import (
     EMBEDDING_MODEL,
     MAX_TOKENS_CHAT,
     MAX_TOKENS_ANALYTICS,
-    MAX_TOKENS_SHORT
 )
 from typing import List, Dict, Any, Optional
 import json

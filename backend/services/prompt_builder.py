@@ -166,55 +166,7 @@ class PromptBuilder:
         """
         return get_intent_detection_prompt(user_message, user_goals)
     
-    def build_goal_extraction_prompt(self, user_message: str) -> str:
-        """
-        Промпт для извлечения финансовой цели из текста (LEGACY - используется как fallback)
-        
-        Args:
-            user_message: Сообщение пользователя
-            
-        Returns:
-            Промпт для извлечения цели
-        """
-        return f"""Извлеки финансовую цель из сообщения клиента.
-
-Верни ТОЛЬКО JSON:
-{{
-    "has_goal": true | false,
-    "title": "название цели",
-    "target_amount": числовая сумма,
-    "deadline_months": количество месяцев (если указано, иначе null)
-}}
-
-Сообщение: {user_message}"""
     
-    def build_product_recommendation_prompt(
-        self, 
-        user_message: str, 
-        context: str
-    ) -> str:
-        """
-        Промпт для рекомендации продуктов
-        
-        Args:
-            user_message: Сообщение пользователя
-            context: Контекст из RAG
-            
-        Returns:
-            Промпт для рекомендации
-        """
-        return f"""На основе базы знаний Zaman Bank, порекомендуй продукты для клиента.
-
-{context}
-
-Запрос клиента: {user_message}
-
-Верни список подходящих продуктов в формате JSON:
-{{
-    "products": [
-        {{"name": "название продукта", "reason": "почему подходит"}}
-    ]
-}}"""
 
 # Singleton instance
 prompt_builder = PromptBuilder()
