@@ -15,7 +15,7 @@ from backend.services.gamification import gamification_service
 router = APIRouter()
 
 class ChallengeCreate(BaseModel):
-    user_id: str
+    user_id: int
     challenge_type: str  # Тип из шаблонов
 
 class ChallengeUpdate(BaseModel):
@@ -23,7 +23,7 @@ class ChallengeUpdate(BaseModel):
     status: Optional[str] = None
 
 class ChallengeResponse(BaseModel):
-    id: str
+    id: int
     title: str
     description: Optional[str]
     challenge_type: str
@@ -69,7 +69,7 @@ async def create_challenge(challenge: ChallengeCreate, db: Session = Depends(get
     db.refresh(new_challenge)
     
     return ChallengeResponse(
-        id=str(new_challenge.id),
+        id=new_challenge.id,
         title=new_challenge.title,
         description=new_challenge.description,
         challenge_type=new_challenge.challenge_type,
@@ -82,7 +82,7 @@ async def create_challenge(challenge: ChallengeCreate, db: Session = Depends(get
     )
 
 @router.get("/challenges/{user_id}", response_model=List[ChallengeResponse])
-async def get_user_challenges(user_id: str, db: Session = Depends(get_db)):
+async def get_user_challenges(user_id: int, db: Session = Depends(get_db)):
     """
     Получение всех челленджей пользователя
     """
@@ -90,7 +90,7 @@ async def get_user_challenges(user_id: str, db: Session = Depends(get_db)):
     
     return [
         ChallengeResponse(
-            id=str(c.id),
+            id=c.id,
             title=c.title,
             description=c.description,
             challenge_type=c.challenge_type,
@@ -106,7 +106,7 @@ async def get_user_challenges(user_id: str, db: Session = Depends(get_db)):
 
 @router.patch("/challenges/{challenge_id}")
 async def update_challenge(
-    challenge_id: str, 
+    challenge_id: int, 
     update: ChallengeUpdate, 
     db: Session = Depends(get_db)
 ):

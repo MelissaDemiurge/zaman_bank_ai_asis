@@ -18,7 +18,7 @@ from backend.services.ai_analytics import ai_analytics
 router = APIRouter()
 
 class AnalyticsRequest(BaseModel):
-    user_id: str
+    user_id: int
     query: Optional[str] = None
     period_days: int = 30
 
@@ -66,7 +66,7 @@ async def compare_with_market(request: AnalyticsRequest, db: Session = Depends(g
 
 @router.post("/analytics/upload-statement/{user_id}")
 async def upload_bank_statement(
-    user_id: str, 
+    user_id: int, 
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
@@ -143,7 +143,7 @@ async def upload_bank_statement(
 
 @router.get("/analytics/transactions/{user_id}")
 async def get_user_transactions(
-    user_id: str,
+    user_id: int,
     limit: int = 50,
     db: Session = Depends(get_db)
 ):
@@ -156,7 +156,7 @@ async def get_user_transactions(
         return {
             "transactions": [
                 {
-                    "id": str(t.id),
+                    "id": t.id,
                     "date": t.date.isoformat(),
                     "amount": t.amount,
                     "description": t.description,
@@ -171,7 +171,7 @@ async def get_user_transactions(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/analytics/should-offer/{user_id}")
-async def should_offer_analytics(user_id: str, db: Session = Depends(get_db)):
+async def should_offer_analytics(user_id: int, db: Session = Depends(get_db)):
     """Проверка - стоит ли предлагать аналитику"""
     try:
         should_offer = ai_analytics.should_offer_analytics(user_id, db)

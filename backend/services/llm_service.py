@@ -1,5 +1,5 @@
 """
-Сервис для работы с LLM (gpt-4o-mini)
+Сервис для работы с LLM (gpt-5-mini)
 """
 from openai import OpenAI
 from backend.config import (
@@ -32,11 +32,11 @@ class LLMService:
         max_tokens: int = None
     ) -> str:
         """
-        Отправка запроса к gpt-4o-mini
+        Отправка запроса к gpt-5-mini
         
         Args:
             messages: Список сообщений в формате [{"role": "user", "content": "..."}]
-            temperature: Температура генерации
+            temperature: Температура генерации (игнорируется для gpt-5-mini)
             max_tokens: Максимальное количество токенов (по умолчанию MAX_TOKENS_CHAT)
             
         Returns:
@@ -47,11 +47,11 @@ class LLMService:
             max_tokens = MAX_TOKENS_CHAT
             
         try:
+            # GPT-5-mini не поддерживает temperature, используем только основные параметры
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens
+                max_completion_tokens=max_tokens
             )
             return response.choices[0].message.content.strip()
         except Exception as e:

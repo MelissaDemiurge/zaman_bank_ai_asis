@@ -1,18 +1,16 @@
 """
 Простая модель транзакций - только самое необходимое
 """
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Text, Integer
 from sqlalchemy.orm import relationship
 from datetime import datetime
-import uuid
 from backend.utils.db import Base
-from backend.utils.guid import GUID
 
 class Transaction(Base):
     __tablename__ = "transactions"
     
-    id = Column(GUID, primary_key=True, default=uuid.uuid4)
-    user_id = Column(GUID, ForeignKey("users.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Только основные поля
     date = Column(DateTime, nullable=False)

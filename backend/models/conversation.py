@@ -1,18 +1,16 @@
 """
 Модель диалога (истории сообщений)
 """
-from sqlalchemy import Column, String, Text, DateTime, Float, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, Float, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from datetime import datetime
-import uuid
 from backend.utils.db import Base
-from backend.utils.guid import GUID
 
 class Conversation(Base):
     __tablename__ = "conversations"
     
-    id = Column(GUID, primary_key=True, default=uuid.uuid4)
-    user_id = Column(GUID, ForeignKey("users.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     message = Column(Text, nullable=False)
     role = Column(String(20), nullable=False)  # 'user' или 'assistant'
     timestamp = Column(DateTime, default=datetime.utcnow)

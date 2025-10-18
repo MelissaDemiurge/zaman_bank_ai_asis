@@ -12,14 +12,13 @@ from backend.models.emotion_log import EmotionLog
 from backend.services.llm_service import llm_service
 from backend.config import MAX_TOKENS_ANALYTICS
 import json
-import uuid
 
 class AIAnalytics:
     """Умный AI-аналитик финансов"""
     
     def analyze_user_finances(
         self, 
-        user_id: str, 
+        user_id: int, 
         db: Session,
         user_query: Optional[str] = None,
         period_days: int = 30
@@ -49,7 +48,7 @@ class AIAnalytics:
     
     def get_comparative_insights(
         self, 
-        user_id: str, 
+        user_id: int, 
         db: Session,
         period_days: int = 30
     ) -> str:
@@ -80,20 +79,13 @@ class AIAnalytics:
     
     def _get_raw_financial_data(
         self, 
-        user_id: str, 
+        user_id: int, 
         db: Session, 
         period_days: int
     ) -> Dict[str, Any]:
         """Просто собираем данные - без анализа"""
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=period_days)
-        
-        # Конвертируем user_id в UUID если это строка
-        if isinstance(user_id, str):
-            try:
-                user_id = uuid.UUID(user_id)
-            except ValueError:
-                pass  # Если не UUID, оставляем как есть
         
         # Транзакции
         transactions = db.query(Transaction).filter(
@@ -259,19 +251,13 @@ class AIAnalytics:
     
     def should_offer_analytics(
         self, 
-        user_id: str, 
+        user_id: int, 
         db: Session
     ) -> bool:
         """
         Проверка - стоит ли предлагать аналитику
         Простая логика: есть транзакции = можно анализировать
         """
-        # Конвертируем user_id в UUID если это строка
-        if isinstance(user_id, str):
-            try:
-                user_id = uuid.UUID(user_id)
-            except ValueError:
-                pass
         
         transactions = db.query(Transaction).filter(
             Transaction.user_id == user_id
@@ -281,19 +267,13 @@ class AIAnalytics:
     
     def get_financial_context_for_chat(
         self, 
-        user_id: str, 
+        user_id: int, 
         db: Session
     ) -> str:
         """
         Финансовый контекст для обычного чата
         Нейронка учитывает это при ответах
         """
-        # Конвертируем user_id в UUID если это строка
-        if isinstance(user_id, str):
-            try:
-                user_id = uuid.UUID(user_id)
-            except ValueError:
-                pass
         
         # Последние 10 транзакций
         recent_transactions = db.query(Transaction).filter(

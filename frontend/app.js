@@ -1,21 +1,17 @@
 // Zaman AI Assistant - Frontend Logic
 
 const API_BASE_URL = 'http://localhost:8000/api';
-let userId = localStorage.getItem('zaman_user_id') || generateUserId();
+let userId = parseInt(localStorage.getItem('zaman_user_id')) || generateUserId();
 let currentMode = 'text';
 let mediaRecorder = null;
 let audioChunks = [];
 
-// Генерация User ID (правильный UUID v4)
+// Генерация User ID (простое число)
 function generateUserId() {
-    // Генерация UUID v4
-    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-    localStorage.setItem('zaman_user_id', uuid);
-    return uuid;
+    // Генерация случайного числа от 1000 до 9999
+    const id = Math.floor(Math.random() * 9000) + 1000;
+    localStorage.setItem('zaman_user_id', id.toString());
+    return id;
 }
 
 // Инициализация

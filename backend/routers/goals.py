@@ -14,7 +14,7 @@ from backend.models.user import User
 router = APIRouter()
 
 class GoalCreate(BaseModel):
-    user_id: str
+    user_id: int
     title: str
     target_amount: float
     deadline_months: Optional[int] = None
@@ -24,7 +24,7 @@ class GoalUpdate(BaseModel):
     status: Optional[str] = None
 
 class GoalResponse(BaseModel):
-    id: str
+    id: int
     title: str
     target_amount: float
     current_amount: float
@@ -56,7 +56,7 @@ async def create_goal(goal: GoalCreate, db: Session = Depends(get_db)):
     db.refresh(new_goal)
     
     return GoalResponse(
-        id=str(new_goal.id),
+        id=new_goal.id,
         title=new_goal.title,
         target_amount=new_goal.target_amount,
         current_amount=new_goal.current_amount,
@@ -67,7 +67,7 @@ async def create_goal(goal: GoalCreate, db: Session = Depends(get_db)):
     )
 
 @router.get("/goals/{user_id}", response_model=List[GoalResponse])
-async def get_user_goals(user_id: str, db: Session = Depends(get_db)):
+async def get_user_goals(user_id: int, db: Session = Depends(get_db)):
     """
     Получение всех целей пользователя
     """
@@ -75,7 +75,7 @@ async def get_user_goals(user_id: str, db: Session = Depends(get_db)):
     
     return [
         GoalResponse(
-            id=str(g.id),
+            id=g.id,
             title=g.title,
             target_amount=g.target_amount,
             current_amount=g.current_amount,
@@ -88,7 +88,7 @@ async def get_user_goals(user_id: str, db: Session = Depends(get_db)):
     ]
 
 @router.patch("/goals/{goal_id}")
-async def update_goal(goal_id: str, update: GoalUpdate, db: Session = Depends(get_db)):
+async def update_goal(goal_id: int, update: GoalUpdate, db: Session = Depends(get_db)):
     """
     Обновление цели
     """
@@ -114,7 +114,7 @@ async def update_goal(goal_id: str, update: GoalUpdate, db: Session = Depends(ge
     return {"message": "Цель обновлена", "goal_id": goal_id}
 
 @router.delete("/goals/{goal_id}")
-async def delete_goal(goal_id: str, db: Session = Depends(get_db)):
+async def delete_goal(goal_id: int, db: Session = Depends(get_db)):
     """
     Удаление цели
     """

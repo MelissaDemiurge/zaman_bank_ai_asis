@@ -4,15 +4,13 @@
 from sqlalchemy import Column, String, Float, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
-import uuid
 from backend.utils.db import Base
-from backend.utils.guid import GUID
 
 class Goal(Base):
     __tablename__ = "goals"
     
-    id = Column(GUID, primary_key=True, default=uuid.uuid4)
-    user_id = Column(GUID, ForeignKey("users.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String(200), nullable=False)  # "Квартира", "Обучение"
     target_amount = Column(Float, nullable=False)  # Целевая сумма
     current_amount = Column(Float, default=0.0)  # Текущий прогресс

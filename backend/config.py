@@ -10,19 +10,19 @@ from backend.prompts import (
     EMOTION_ANALYSIS_PROMPT
 )
 
-# API конфигурация для OpenAI Hub
-OPENAI_API_KEY = "sk-roG3OusRr0TLCHAADks6lw"
-OPENAI_BASE_URL = "https://openai-hub.neuraldeep.tech"
+# API конфигурация для OpenAI
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
 # Модели
-GPT_MODEL = "gpt-4o-mini"
+GPT_MODEL = "gpt-5-mini"
 EMBEDDING_MODEL = "text-embedding-3-small"
 WHISPER_MODEL = "whisper-1"
 
 # База данных
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "postgresql://postgres:postgres@localhost:5432/zaman_db"
+    "sqlite:///./zaman.db"
 )
 
 # ChromaDB

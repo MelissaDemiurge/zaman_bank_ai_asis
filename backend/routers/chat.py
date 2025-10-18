@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from datetime import datetime
-import uuid
 
 from backend.utils.db import get_db
 from backend.models.user import User
@@ -24,6 +23,7 @@ from backend.utils.validators import sanitize_input
 from backend.prompts import (
     get_no_goals_deletion_prompt,
     get_goal_not_found_prompt,
+    get_unspecified_goal_deletion_prompt,
     get_past_deadline_goal_prompt,
     get_create_goal_suggestion_prompt,
     get_delete_goal_confirmation_prompt
@@ -32,7 +32,7 @@ from backend.prompts import (
 router = APIRouter()
 
 class ChatRequest(BaseModel):
-    user_id: str
+    user_id: int
     message: Optional[str] = None
     mode: str = "text"  # "text" или "voice"
     audio_data: Optional[str] = None  # base64 если voice
@@ -54,9 +54,11 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
         # 1. Получение или создание пользователя
         user = db.query(User).filter(User.id == request.user_id).first()
         if not user:
-            user = User(id=request.user_id, name=f"User_{request.user_id[:8]}")
+            # Создаем пользователя с переданным ID
+            user = User(id=request.user_id, name=f"User_{request.user_id}")
             db.add(user)
             db.commit()
+            db.refresh(user)
         
         # 2. Обработка голосового ввода
         user_message = request.message
@@ -150,7 +152,22 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
         
         try:
             # LLM анализирует намерение пользователя
-            intent_data = llm_service.detect_intent(user_message, goals_data)
+            # Передаем ВСЕ цели пользователя (не только active) для контекста
+            all_user_goals = db.query(Goal).filter(Goal.user_id == user.id).all()
+            all_goals_data = [
+                {
+                    "title": g.title,
+                    "target_amount": g.target_amount,
+                    "current_amount": g.current_amount,
+                    "progress_percentage": g.progress_percentage,
+                    "status": g.status
+                }
+                for g in all_user_goals
+            ]
+            print(f"[DEBUG] Passing {len(all_goals_data)} goals to intent detection")
+            for goal in all_goals_data:
+                print(f"[DEBUG] Goal: {goal['title']} (status: {goal['status']})")
+            intent_data = llm_service.detect_intent(user_message, all_goals_data)
             
             # Проверяем уверенность (confidence) - фильтруем неуверенные определения
             confidence_threshold = 0.7  # Порог уверенности
@@ -232,6 +249,14 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
                                 "role": "system", 
                                 "content": get_goal_not_found_prompt(goal_to_delete, goals_data)
                             })
+                    
+                    else:
+                        # Есть цели, но пользователь НЕ указал конкретное название
+                        print(f"[Goal Detection] DELETE intent but NO specific goal name provided")
+                        messages.append({
+                            "role": "system", 
+                            "content": get_unspecified_goal_deletion_prompt(goals_data)
+                        })
             
             else:
                 # Низкая уверенность - логируем для анализа
@@ -324,7 +349,7 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/conversation/{user_id}")
-async def get_conversation_history(user_id: str, db: Session = Depends(get_db)):
+async def get_conversation_history(user_id: int, db: Session = Depends(get_db)):
     """
     Получение истории диалога
     """
@@ -347,7 +372,7 @@ async def get_conversation_history(user_id: str, db: Session = Depends(get_db)):
     }
 
 class GoalActionRequest(BaseModel):
-    user_id: str
+    user_id: int
     title: str
     target_amount: Optional[float] = None
     deadline_months: Optional[int] = None
@@ -390,7 +415,7 @@ async def create_goal(request: GoalActionRequest, db: Session = Depends(get_db))
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/goal/delete/{user_id}/{goal_id}")
-async def delete_goal(user_id: str, goal_id: str, db: Session = Depends(get_db)):
+async def delete_goal(user_id: int, goal_id: int, db: Session = Depends(get_db)):
     """
     Удаление финансовой цели
     """

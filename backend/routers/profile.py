@@ -14,7 +14,6 @@ from backend.models.conversation import Conversation
 from backend.models.goal import Goal
 from backend.models.challenge import Challenge
 from backend.services.proactive_agent import proactive_agent
-import uuid
 
 router = APIRouter()
 
@@ -23,13 +22,13 @@ class CreateUserRequest(BaseModel):
     phone: Optional[str] = None
 
 class UserResponse(BaseModel):
-    id: str
+    id: int
     name: str
     phone: Optional[str]
     created_at: str
 
 class EmotionalProfileResponse(BaseModel):
-    user_id: str
+    user_id: int
     average_stress_score: float
     dominant_emotion: str
     financial_vulnerability_trend: str
@@ -56,7 +55,6 @@ async def create_user(request: CreateUserRequest, db: Session = Depends(get_db))
     
     # Создание нового пользователя
     new_user = User(
-        id=uuid.uuid4(),
         name=request.name,
         phone=request.phone
     )
@@ -76,7 +74,7 @@ async def create_user(request: CreateUserRequest, db: Session = Depends(get_db))
     }
 
 @router.get("/profile/{user_id}", response_model=EmotionalProfileResponse)
-async def get_emotional_profile(user_id: str, db: Session = Depends(get_db)):
+async def get_emotional_profile(user_id: int, db: Session = Depends(get_db)):
     """
     Получение эмоционального профиля пользователя
     """
@@ -144,7 +142,7 @@ async def get_emotional_profile(user_id: str, db: Session = Depends(get_db)):
     )
 
 @router.post("/proactive/check/{user_id}")
-async def check_proactive_triggers(user_id: str, db: Session = Depends(get_db)):
+async def check_proactive_triggers(user_id: int, db: Session = Depends(get_db)):
     """
     Проверка триггеров для проактивных уведомлений
     """

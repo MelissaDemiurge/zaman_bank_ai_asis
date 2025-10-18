@@ -1,17 +1,15 @@
 """
 Модель пользователя
 """
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, Integer
 from sqlalchemy.orm import relationship
 from datetime import datetime
-import uuid
 from backend.utils.db import Base
-from backend.utils.guid import GUID
 
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(200), nullable=True)
     phone = Column(String(20), unique=True, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
