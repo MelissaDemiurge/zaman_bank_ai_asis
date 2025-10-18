@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zaman AI Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🏦 Zaman AI Assistant</h1>
+            <p class="subtitle">Ваш персональный советник по исламским финансам</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Sidebar с информацией -->
+            <aside class="sidebar">
+                <div class="card">
+                    <h3>Эмоциональный профиль</h3>
+                    <div id="emotion-display">
+                        <p class="emotion-type">😊 Спокойствие</p>
+                        <p class="stress-level">Стресс: <span id="stress-score">3</span>/10</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Ваши цели</h3>
+                    <div id="goals-list">
+                        <p class="empty-state">Цели не установлены</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Челленджи</h3>
+                    <div id="challenges-list">
+                        <p class="empty-state">Нет активных челленджей</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Chat Area -->
+            <main class="chat-section">
+                <div class="chat-container" id="chat-container">
+                    <div class="welcome-message">
+                        <h2>Ассалому алейкум! 👋</h2>
+                        <p>Я — Zaman, ваш персональный AI-ассистент по исламским финансам.</p>
+                        <p>Могу помочь вам:</p>
+                        <ul>
+                            <li>Выбрать депозит или финансирование по Шариату</li>
+                            <li>Поставить финансовые цели</li>
+                            <li>Справиться с финансовым стрессом</li>
+                            <li>Создать челлендж для накоплений</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-area">
+                    <div class="mode-switch">
+                        <button id="text-mode-btn" class="mode-btn active">💬 Текст</button>
+                        <button id="voice-mode-btn" class="mode-btn">🎤 Голос</button>
+                    </div>
+
+                    <!-- Text Mode -->
+                    <div id="text-input-container" class="input-container">
+                        <input 
+                            type="text" 
+                            id="message-input" 
+                            placeholder="Напишите ваш вопрос..."
+                            autocomplete="off"
+                        >
+                        <button id="send-btn" class="send-btn">Отправить</button>
+                    </div>
+
+                    <!-- Voice Mode -->
+                    <div id="voice-input-container" class="input-container hidden">
+                        <button id="record-btn" class="record-btn">
+                            <span class="record-icon">🎤</span>
+                            <span class="record-text">Нажмите для записи</span>
+                        </button>
+                        <p class="voice-status" id="voice-status">Готов к записи</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
