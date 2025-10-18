@@ -85,21 +85,6 @@ body {
     font-size: 0.9rem;
 }
 
-/* Emotion Display */
-.emotion-type {
-    font-size: 1.5rem;
-    margin-bottom: 10px;
-}
-
-.stress-level {
-    font-size: 1rem;
-    color: var(--text-secondary);
-}
-
-#stress-score {
-    font-weight: bold;
-    color: var(--accent-color);
-}
 
 /* Goals and Challenges Lists */
 .goal-item, .challenge-item {
@@ -385,5 +370,44 @@ body {
     .sidebar {
         grid-template-columns: 1fr;
     }
+}
+
+/* Goal Action Buttons */
+.goal-action-buttons {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-goal-yes, .btn-goal-no {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    flex: 1;
+    min-width: 150px;
+}
+
+.btn-goal-yes {
+    background: linear-gradient(135deg, var(--primary-color), #388e3c);
+    color: white;
+}
+
+.btn-goal-yes:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.btn-goal-no {
+    background: #f5f5f5;
+    color: #666;
+}
+
+.btn-goal-no:hover {
+    background: #e0e0e0;
 }
 

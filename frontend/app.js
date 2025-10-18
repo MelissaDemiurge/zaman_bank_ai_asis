@@ -21,7 +21,6 @@ function generateUserId() {
 // Инициализация
 document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
-    loadUserProfile();
     loadUserGoals();
     loadUserChallenges();
 });
@@ -84,10 +83,7 @@ async function sendTextMessage() {
         const data = await response.json();
         
         // Add assistant response
-        addMessageToChat('assistant', data.response, data.suggested_products, data.emotion);
-        
-        // Update emotion display
-        updateEmotionDisplay(data.emotion);
+        addMessageToChat('assistant', data.response, data.suggested_products, data.emotion, data.suggested_goal, data.goal_action);
         
         // Reload goals and challenges (in case they were created)
         loadUserGoals();
@@ -170,10 +166,7 @@ async function sendVoiceMessage(audioBlob) {
             
             // Add messages to chat
             addMessageToChat('user', '🎤 Голосовое сообщение');
-            addMessageToChat('assistant', data.response, data.suggested_products, data.emotion);
-            
-            // Update emotion
-            updateEmotionDisplay(data.emotion);
+            addMessageToChat('assistant', data.response, data.suggested_products, data.emotion, data.suggested_goal, data.goal_action);
             
             // Play audio response if available
             if (data.audio_response) {
@@ -197,7 +190,7 @@ function playAudioResponse(base64Audio) {
 }
 
 // Добавление сообщения в чат
-function addMessageToChat(role, message, products = [], emotion = null) {
+function addMessageToChat(role, message, products = [], emotion = null, suggestedGoal = null, goalAction = null) {
     const chatContainer = document.getElementById('chat-container');
     
     // Remove welcome message if exists
@@ -220,10 +213,37 @@ function addMessageToChat(role, message, products = [], emotion = null) {
         `;
     }
     
+    // Кнопки для подтверждения создания/удаления цели
+    let goalActionHtml = '';
+    if (suggestedGoal && goalAction === 'create') {
+        goalActionHtml = `
+            <div class="goal-action-buttons">
+                <button class="btn-goal-yes" onclick="confirmCreateGoal(this, '${suggestedGoal.title}', ${suggestedGoal.target_amount}, ${suggestedGoal.deadline_months})">
+                    ✅ Да, добавить в цели
+                </button>
+                <button class="btn-goal-no" onclick="dismissGoalSuggestion(this)">
+                    ❌ Нет, спасибо
+                </button>
+            </div>
+        `;
+    } else if (suggestedGoal && goalAction === 'delete') {
+        goalActionHtml = `
+            <div class="goal-action-buttons">
+                <button class="btn-goal-yes" onclick="confirmDeleteGoal(this, '${suggestedGoal.id}', '${suggestedGoal.title}')">
+                    ✅ Да, удалить
+                </button>
+                <button class="btn-goal-no" onclick="dismissGoalSuggestion(this)">
+                    ❌ Отмена
+                </button>
+            </div>
+        `;
+    }
+    
     messageDiv.innerHTML = `
         <div class="message-content">
             ${message}
             ${productsHtml}
+            ${goalActionHtml}
             <div class="message-time">${time}</div>
         </div>
     `;
@@ -232,47 +252,7 @@ function addMessageToChat(role, message, products = [], emotion = null) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Обновление отображения эмоций
-function updateEmotionDisplay(emotion) {
-    if (!emotion) return;
-    
-    const emotionIcons = {
-        'стресс': '😰',
-        'тревога': '😟',
-        'спокойствие': '😊',
-        'радость': '😄',
-        'разочарование': '😔'
-    };
-    
-    const icon = emotionIcons[emotion.emotion_type] || '😊';
-    document.querySelector('.emotion-type').textContent = `${icon} ${emotion.emotion_type}`;
-    document.getElementById('stress-score').textContent = emotion.stress_score.toFixed(1);
-    
-    // Color code stress level
-    const stressScore = document.getElementById('stress-score');
-    if (emotion.stress_score >= 7) {
-        stressScore.style.color = '#d32f2f';
-    } else if (emotion.stress_score >= 5) {
-        stressScore.style.color = '#ffa726';
-    } else {
-        stressScore.style.color = '#66bb6a';
-    }
-}
 
-// Загрузка профиля пользователя
-async function loadUserProfile() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/profile/${userId}`);
-        const data = await response.json();
-        
-        updateEmotionDisplay({
-            emotion_type: data.dominant_emotion,
-            stress_score: data.average_stress_score
-        });
-    } catch (error) {
-        console.error('Error loading profile:', error);
-    }
-}
 
 // Загрузка целей
 async function loadUserGoals() {
@@ -287,15 +267,34 @@ async function loadUserGoals() {
             return;
         }
         
-        goalsContainer.innerHTML = goals.map(goal => `
-            <div class="goal-item">
-                <h4>${goal.title}</h4>
-                <p>${goal.current_amount.toLocaleString()} / ${goal.target_amount.toLocaleString()} ₸</p>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${goal.progress_percentage}%"></div>
+        goalsContainer.innerHTML = goals.map(goal => {
+            // Формируем детали цели только если есть данные
+            let details = '';
+            
+            // Показываем сумму только если указана
+            if (goal.target_amount && goal.target_amount > 0) {
+                details += `<p>${goal.current_amount.toLocaleString()} / ${goal.target_amount.toLocaleString()} ₸</p>`;
+                details += `
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${goal.progress_percentage}%"></div>
+                    </div>
+                `;
+            }
+            
+            // Показываем дедлайн только если указан
+            if (goal.deadline_months && goal.deadline_months > 0) {
+                const monthText = goal.deadline_months === 1 ? 'месяц' : 
+                                 goal.deadline_months < 5 ? 'месяца' : 'месяцев';
+                details += `<p style="font-size: 0.9rem; color: #666;">📅 ${goal.deadline_months} ${monthText}</p>`;
+            }
+            
+            return `
+                <div class="goal-item">
+                    <h4>${goal.title}</h4>
+                    ${details}
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         
     } catch (error) {
         console.error('Error loading goals:', error);
@@ -347,4 +346,92 @@ setInterval(async () => {
         console.error('Error checking proactive notifications:', error);
     }
 }, 300000); // Every 5 minutes
+
+// Подтверждение создания цели
+async function confirmCreateGoal(button, title, targetAmount, deadlineMonths) {
+    try {
+        // Убрать кнопки сразу, чтобы предотвратить двойной клик
+        const buttonsContainer = button.closest('.goal-action-buttons');
+        buttonsContainer.style.opacity = '0.5';
+        buttonsContainer.style.pointerEvents = 'none';
+        
+        const response = await fetch(`${API_BASE_URL}/goal/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userId,
+                title: title,
+                target_amount: targetAmount,
+                deadline_months: deadlineMonths
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            addMessageToChat('assistant', data.message);
+            loadUserGoals(); // Обновить список целей
+            
+            // Убрать кнопки после успешного создания
+            buttonsContainer.remove();
+        } else {
+            // Если ошибка - вернуть кнопки
+            buttonsContainer.style.opacity = '1';
+            buttonsContainer.style.pointerEvents = 'auto';
+        }
+        
+    } catch (error) {
+        console.error('Error creating goal:', error);
+        addMessageToChat('assistant', 'Произошла ошибка при создании цели.');
+        // Вернуть кнопки при ошибке
+        const buttonsContainer = button.closest('.goal-action-buttons');
+        if (buttonsContainer) {
+            buttonsContainer.style.opacity = '1';
+            buttonsContainer.style.pointerEvents = 'auto';
+        }
+    }
+}
+
+// Подтверждение удаления цели
+async function confirmDeleteGoal(button, goalId, title) {
+    try {
+        // Убрать кнопки сразу, чтобы предотвратить двойной клик
+        const buttonsContainer = button.closest('.goal-action-buttons');
+        buttonsContainer.style.opacity = '0.5';
+        buttonsContainer.style.pointerEvents = 'none';
+        
+        const response = await fetch(`${API_BASE_URL}/goal/delete/${userId}/${goalId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            addMessageToChat('assistant', data.message);
+            loadUserGoals(); // Обновить список целей
+            
+            // Убрать кнопки после успешного удаления
+            buttonsContainer.remove();
+        } else {
+            // Если ошибка - вернуть кнопки
+            buttonsContainer.style.opacity = '1';
+            buttonsContainer.style.pointerEvents = 'auto';
+        }
+        
+    } catch (error) {
+        console.error('Error deleting goal:', error);
+        addMessageToChat('assistant', 'Произошла ошибка при удалении цели.');
+        // Вернуть кнопки при ошибке
+        const buttonsContainer = button.closest('.goal-action-buttons');
+        if (buttonsContainer) {
+            buttonsContainer.style.opacity = '1';
+            buttonsContainer.style.pointerEvents = 'auto';
+        }
+    }
+}
+
+// Отклонить предложение цели
+function dismissGoalSuggestion(button) {
+    button.closest('.goal-action-buttons').remove();
+}
 

@@ -21,6 +21,7 @@ class User(Base):
     goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan")
     emotion_logs = relationship("EmotionLog", back_populates="user", cascade="all, delete-orphan")
     challenges = relationship("Challenge", back_populates="user", cascade="all, delete-orphan")
+    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<User {self.name} ({self.id})>"

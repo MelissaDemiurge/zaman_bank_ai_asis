@@ -2,7 +2,8 @@
 Конструктор промптов для Zaman AI
 """
 from backend.config import SYSTEM_PROMPT
-from typing import List, Dict, Optional
+from backend.prompts import get_intent_detection_prompt
+from typing import List, Dict, Optional, Any
 from backend.services.rag_engine import rag_engine
 from backend.services.emotion_analyzer import emotion_analyzer
 
@@ -143,9 +144,26 @@ class PromptBuilder:
         context += "\n🎯 Поощряй прогресс в челленджах!\n"
         return context
     
+    def build_intent_detection_prompt(
+        self, 
+        user_message: str,
+        user_goals: Optional[List[Dict[str, Any]]] = None
+    ) -> str:
+        """
+        Промпт для определения намерений пользователя (умный анализ вместо ключевых слов)
+        
+        Args:
+            user_message: Сообщение пользователя
+            user_goals: Текущие цели пользователя (для контекста)
+            
+        Returns:
+            Промпт для определения намерения
+        """
+        return get_intent_detection_prompt(user_message, user_goals)
+    
     def build_goal_extraction_prompt(self, user_message: str) -> str:
         """
-        Промпт для извлечения финансовой цели из текста
+        Промпт для извлечения финансовой цели из текста (LEGACY - используется как fallback)
         
         Args:
             user_message: Сообщение пользователя

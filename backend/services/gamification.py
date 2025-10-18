@@ -72,17 +72,17 @@ class GamificationService:
             stress_score = emotion_data.get("stress_score", 3)
             vulnerability = emotion_data.get("financial_vulnerability", "низкая")
             
-            # Высокий стресс и уязвимость → челленджи по контролю трат
+            # Высокий стресс и уязвимость - челленджи по контролю трат
             if stress_score >= 7 or vulnerability == "высокая":
                 return self.CHALLENGE_TEMPLATES["stress_free_week"]
             elif stress_score >= 5:
                 return self.CHALLENGE_TEMPLATES["no_impulse_30"]
         
-        # Если есть цели на накопление → челлендж по сбережениям
+        # Если есть цели на накопление - челлендж по сбережениям
         if user_goals:
             return self.CHALLENGE_TEMPLATES["save_100k"]
         
-        # По умолчанию → открытие депозита
+        # По умолчанию - открытие депозита
         return self.CHALLENGE_TEMPLATES["deposit_open"]
     
     def generate_completion_message(self, challenge: Dict) -> str:

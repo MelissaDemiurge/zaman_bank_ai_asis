@@ -8,7 +8,7 @@ from backend.config import (
     GPT_MODEL,
     EMBEDDING_MODEL
 )
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import json
 
 class LLMService:
@@ -113,6 +113,60 @@ class LLMService:
         messages.append({"role": "user", "content": prompt})
         
         return self.chat_completion(messages)
+    
+    def detect_intent(self, user_message: str, user_goals: Optional[List[Dict]] = None) -> Dict[str, Any]:
+        """
+        Определение намерения пользователя через LLM (умный анализ вместо ключевых слов)
+        
+        Args:
+            user_message: Сообщение пользователя
+            user_goals: Текущие цели пользователя (для контекста)
+            
+        Returns:
+            Словарь с данными о намерении:
+            {
+                "intent": "create_goal" | "delete_goal" | "update_goal" | "none",
+                "confidence": 0.0-1.0,
+                "goal_data": {...},
+                "goal_to_delete": "...",
+                "reasoning": "..."
+            }
+        """
+        from backend.services.prompt_builder import prompt_builder
+        
+        try:
+            # Создаём промпт для определения намерения
+            prompt = prompt_builder.build_intent_detection_prompt(user_message, user_goals)
+            
+            # Запрос к LLM
+            response = self.simple_query(prompt)
+            
+            # Извлекаем JSON
+            intent_data = self.extract_json_from_response(response)
+            
+            # Валидация обязательных полей
+            if not intent_data.get('intent'):
+                intent_data['intent'] = 'none'
+            if not intent_data.get('confidence'):
+                intent_data['confidence'] = 0.0
+            
+            # Логирование для отладки
+            print(f"[Intent Detection] Intent: {intent_data.get('intent')} "
+                  f"(confidence: {intent_data.get('confidence'):.2f}) - "
+                  f"{intent_data.get('reasoning', 'No reasoning')}")
+            
+            return intent_data
+            
+        except Exception as e:
+            print(f"Error in detect_intent: {e}")
+            # Возвращаем дефолтное значение при ошибке
+            return {
+                "intent": "none",
+                "confidence": 0.0,
+                "goal_data": None,
+                "goal_to_delete": None,
+                "reasoning": f"Error: {str(e)}"
+            }
 
 # Singleton instance
 llm_service = LLMService()
