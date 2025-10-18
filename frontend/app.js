@@ -6,11 +6,16 @@ let currentMode = 'text';
 let mediaRecorder = null;
 let audioChunks = [];
 
-// Генерация User ID
+// Генерация User ID (правильный UUID v4)
 function generateUserId() {
-    const id = 'user_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('zaman_user_id', id);
-    return id;
+    // Генерация UUID v4
+    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+    localStorage.setItem('zaman_user_id', uuid);
+    return uuid;
 }
 
 // Инициализация
@@ -83,6 +88,10 @@ async function sendTextMessage() {
         
         // Update emotion display
         updateEmotionDisplay(data.emotion);
+        
+        // Reload goals and challenges (in case they were created)
+        loadUserGoals();
+        loadUserChallenges();
         
     } catch (error) {
         console.error('Error:', error);

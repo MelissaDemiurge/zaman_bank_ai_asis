@@ -128,6 +128,28 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
         # 6. Получение ответа от LLM
         assistant_response = llm_service.chat_completion(messages)
         
+        # 6.5. Попытка извлечения финансовой цели из сообщения
+        goal_extracted = None
+        if any(keyword in user_message.lower() for keyword in ['накопить', 'цель', 'хочу купить', 'планирую', 'собираю на']):
+            goal_prompt = prompt_builder.build_goal_extraction_prompt(user_message)
+            try:
+                goal_response = llm_service.simple_query(goal_prompt)
+                goal_data = llm_service.extract_json_from_response(goal_response)
+                
+                if goal_data.get('has_goal') and goal_data.get('target_amount'):
+                    # Создание цели
+                    new_goal = Goal(
+                        user_id=user.id,
+                        title=goal_data.get('title', 'Финансовая цель'),
+                        target_amount=float(goal_data.get('target_amount')),
+                        deadline_months=goal_data.get('deadline_months')
+                    )
+                    db.add(new_goal)
+                    db.commit()
+                    goal_extracted = goal_data.get('title', 'Новая цель')
+            except Exception as e:
+                print(f"Error extracting goal: {e}")
+        
         # 7. Извлечение рекомендованных продуктов (простой поиск по ключевым словам)
         suggested_products = []
         response_lower = assistant_response.lower()

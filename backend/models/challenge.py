@@ -2,17 +2,17 @@
 Модель челленджей (геймификация)
 """
 from sqlalchemy import Column, String, Integer, DateTime, Float, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
 from backend.utils.db import Base
+from backend.utils.guid import GUID
 
 class Challenge(Base):
     __tablename__ = "challenges"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID, ForeignKey("users.id"), nullable=False)
     title = Column(String(200), nullable=False)  # Название челленджа
     challenge_type = Column(String(50), nullable=False)  # savings, no_impulse, deposit
     target_value = Column(Float, nullable=True)  # Целевое значение (сумма, дни)
